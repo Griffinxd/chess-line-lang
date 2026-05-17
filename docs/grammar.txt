@@ -1,0 +1,90 @@
+<program> ::= { <statement> }
+
+<statement> ::= <declaration>
+              | <assignment>
+              | <position_block>
+              | <print_stmt>
+              | <expression_stmt>
+
+<expression_stmt> ::= <expression>
+
+<declaration> ::= <board_decl>
+                | <color_decl>
+                | <piece_decl>
+                | <move_decl>
+                | <premove_decl>
+
+<board_decl> ::= ("bd" | "board") <identifier_list> [ ASSIGN <board_init> ]
+
+<identifier_list> ::= <identifier> { COMMA <identifier> }
+
+<board_init> ::= "starting"
+               | "empty"
+               | <string_literal>
+
+<color_decl> ::= ("tr" | "turn" | "cl" | "color") <identifier> ASSIGN <color_value>
+
+<color_value> ::= "white" | "black" | "WHITE" | "BLACK"
+
+<piece_decl> ::= ("pc" | "piece") <identifier> ASSIGN <piece_value>
+
+<piece_value> ::= <piece_literal>
+                | <identifier>
+
+<move_decl> ::= ("mv" | "move") <identifier> ASSIGN <expression>
+
+<premove_decl> ::= "premove" <identifier>
+                   LPAREN [ <formal_param_list> ] RPAREN
+                   LBRACE [ <premove_body> ] RBRACE
+
+<formal_param_list> ::= <identifier> { COMMA <identifier> }
+
+<premove_body> ::= <move_item> { (COMMA | DOUBLE_COMMA) <move_item> }
+
+<position_block> ::= <identifier> DOT LBRACE [ <move_sequence> ] RBRACE
+
+<move_sequence> ::= <move_item> { COMMA <move_item> }
+
+<move_item> ::= <line_branch>
+              | <assignment>
+              | <print_stmt>
+              | <expression_stmt>
+
+<line_branch> ::= "line" <move_literal> LBRACE [ <move_sequence> ] RBRACE
+
+<premove_call> ::= <identifier> LPAREN [ <premove_arg> ] RPAREN
+
+<premove_arg> ::= <identifier>
+                | <one_side_move_list>
+
+<one_side_move_list> ::= <move_literal> { DOUBLE_COMMA <move_literal> }
+
+<assignment> ::= <identifier> ASSIGN <expression>
+               | <board_attribute> ASSIGN <expression>
+               | <square_assignment>
+
+<board_attribute> ::= <identifier> DOT ("turn" | "tr" | "color" | "cl")
+
+<square_assignment> ::= <identifier> DOT ("sq" | "square")
+                        LPAREN <square_literal> RPAREN
+                        ASSIGN <piece_value>
+
+<print_stmt> ::= "print" LPAREN <expression> RPAREN
+
+<expression> ::= "this"
+               | <eval_method_call>
+               | <eval_call>
+               | <premove_call>
+               | <string_literal>
+               | <piece_value>
+               | <square_literal>
+               | <move_literal>
+               | <color_value>
+               | <identifier>
+
+<eval_call> ::= "eval" LPAREN <expression> RPAREN
+
+<eval_method_call> ::= "eval" DOT "move"
+                       LPAREN [ <actual_param_list> ] RPAREN
+
+<actual_param_list> ::= <expression> { COMMA <expression> }

@@ -1,0 +1,32 @@
+Interaction 1:
+Date: 05.05.2026
+Language Model: Grok
+Chat Link: https://grok.com/share/c2hhcmQtMi1jb3B5_e78123bc-604f-47f1-965f-0336b39fd4c1
+Description: Chat was focused on main ideas and the planning for the project. Drew the outlines and exhanged a few ideas with grok. This was before I started to design grammar. Mainly focused on features and technical aspects.
+
+Interaction 2:
+Date: 05.05.2026
+Language Model: Grok
+Chat Link: https://grok.com/share/c2hhcmQtMi1jb3B5_cd766e05-6c21-4b5e-8480-83a984c88660
+Description: Language Design, Token types, sample programs.
+
+Interaction 3:
+Date: 06.05.2026
+Language Model: Gemini
+Chat Link: https://gemini.google.com/share/7c245a1a3e24
+Description: Brainstorming on subprograms
+
+Interaction 4:
+Date: 07.05.2026
+Language Model: Grok
+Chat Link: https://grok.com/share/c2hhcmQtMi1jb3B5_bf4b9c41-189e-49c6-a735-025a1bcfd60c
+Description: Finalizing language design, token types and grammar
+
+
+Interaction 5:
+Date: 07.05.2026
+Language Model: Chatgpt
+Chat Link: https://chatgpt.com/share/69fc952e-38e8-838d-ba45-57e1e74ce858
+Description: Polishing grammar and token type list
+
+

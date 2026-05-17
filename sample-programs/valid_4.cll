@@ -1,0 +1,23 @@
+// Sample Program 4: Line branching and multiple variations
+// Demonstrates: line construct, branching logic, eval calls in different branches
+bd puzzle <= starting
+bd puzzle_1
+puzzle.{
+    e4,
+    line c5 {
+        d4,
+        c4,
+        puzzle <= this
+    },
+    line e5 {
+        Nf3,
+        Nc3,
+        puzzle_1 <= this
+    }
+}
+
+print(puzzle)
+print(eval(puzzle))
+
+print(puzzle_1)
+print(eval(puzzle_1))

@@ -1,0 +1,6 @@
+bd newpos <= empty
+
+newpos.tr <= BLACK
+newpos.sq(E1) <= W-king
+newpos.sq(E2) <= B-king
+newpos.tr <= white

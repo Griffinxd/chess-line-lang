@@ -1,0 +1,18 @@
+// Sample Program 7: Eval with move method and dynamic position evaluation
+// Demonstrates: eval.move() returning best move, assignment of move literals to variables
+bd position <= starting
+
+position.{
+    d4,
+    d5,
+    c4
+}
+
+mv best_response <= eval.move(position)
+print(best_response)
+
+position.{
+    best_response
+}
+
+print(eval(position))

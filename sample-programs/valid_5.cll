@@ -1,0 +1,10 @@
+// Sample Program 5: Premove declarations and nested calls
+// Demonstrates: premove definition with parameters, nested premove calls, move sequencing
+premove italian_game() {
+    e4,,Nf3,,Bc4
+}
+
+bd game_position <= starting
+game_position <= italian_game(e5,,Nc6,,Bc5)
+
+print(game_position)

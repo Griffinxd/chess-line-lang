@@ -1,0 +1,76 @@
+Sample Program 1
+###########################################
+bd first_position <= starting // create a board variable named "first_position" and set it to Starting position
+
+bd last_position, another_position // declare two other board variables, bd stands for board type
+first_position.{ // play out moves on current board position in first_position .{} represents moves after
+    e4, 
+    line e5 { // branching for line
+        Nf3, // our response for this line
+        last_position <= this // last_position variable gets the value of the current board. this keyword stands for the board position after previous moves are played
+    }
+    line c6 { // another branch
+        d4, // our response after move c6
+        another_position <= this // another assignment for different line in first_possition variable
+    }
+}
+
+print(last_position) // an output for the resulting position in standard I/O. this should be either FEN or 2D board state with ASCII characters as in python chess library
+print(eval(another_position)) // eval for the current position after moves e4,c6,d4. Output = "+0.5" or whatever
+
+###########################################
+
+Sample Program 2
+###########################################
+bd puzzle <= "rnbqkbnr/..."/ FEN notation of a puzzle here, mate in 1
+
+puzzle.{
+    Qd7 // this is the answer to the puzzle
+}
+
+print(eval(puzzle)) // black/white wins 1-0 or 0-1 since it is mated.
+###########################################
+
+
+
+Sample Program 3 
+###########################################
+bd some_position <= // FEN notation here
+mv best_move <= eval.move(some_position) // eval.move(bd type input parameter) returns a move type for the given position. it is the best move
+print(best_move) // prints out the best move. E.g. Ka8.
+
+###########################################
+
+
+
+Sample Program 4 - Describing a board without FEN
+###########################################
+
+bd pos <= empty // set board as empty 
+pos.turn <= white // set turn attribute as white
+pos.sq(a2) <= W-king // put a white king on square a2, sq and square are same tokens
+pos.square(a3) <= B-king // put a black king on square a3, notice this is an illegal position but it is ok unless we call an eval operator
+eval(pos) // this should produce a illegal board/game error since in the resulting board kings should be at least 1 square apart. This should apply all illegal positions
+
+###########################################
+
+
+
+Sample Program 5 - Premoves as subprogram structures
+###########################################
+
+premove london_system(){ // premoves London System opening moves
+    d4,,Bf4,,e3,,Nf3,,c3
+}
+
+premove kings_indian(){ // premoves Kings Indian Defense
+    g6,,Bg7,,d6,,Nf6,,O-O
+}
+bd pos <= starting 
+
+pos <= london_system(kings_indian()) // premoves london system moves as white and kings indian as black
+// starting <= london_system(g6,,Bg7,,d6,,Nf6,,O-O) // same as the previous statement 
+
+print(pos) // prints with 
+
+###########################################

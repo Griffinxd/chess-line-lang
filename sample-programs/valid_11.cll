@@ -1,0 +1,13 @@
+premove white_setup(black_line) {
+    d4,, Bf4,, e3,, Nf3,, c3
+}
+
+premove kings_indian() {
+    g6,, Bg7,, d6,, Nf6,, O-O
+}
+
+bd pos <= starting
+
+pos <= white_setup(kings_indian)
+
+print(pos)

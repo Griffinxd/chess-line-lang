@@ -1,0 +1,25 @@
+// Sample Program 8: Complex game with line analysis and position tracking
+// Demonstrates: multiple line branches, this keyword, nested assignments, eval in loops
+bd main_line <= starting
+
+main_line.{
+    e4,
+    line c5 {
+        d4,
+        line cxd4 {
+            Nf3,
+            Nc6,
+            c3,
+            main_line <= this
+        },
+        line Nf6 {
+            Nc3,
+            d5,
+            cxd5,
+            main_line <= this
+        }
+    }
+}
+
+print(main_line)
+print(eval(main_line))

@@ -1,0 +1,13 @@
+// Sample Program 6: Square and piece assignment
+// Demonstrates: board initialization as empty, square assignment, color assignment, piece placement
+bd custom_board <= empty
+
+custom_board.tr <= white
+custom_board.sq(E1) <= W-king
+custom_board.sq(E8) <= B-king
+custom_board.sq(A1) <= W-rook
+custom_board.sq(H1) <= W-rook
+custom_board.sq(A8) <= B-rook
+custom_board.sq(H8) <= B-rook
+
+print(custom_board)
