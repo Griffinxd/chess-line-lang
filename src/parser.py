@@ -163,29 +163,23 @@ class Parser:
         return BoardDeclNode(names, init, line)
 
     def parse_color_decl(self) -> ColorDeclNode:
-        """<color_decl> ::= ("tr"|"turn"|"cl"|"color") <identifier> ASSIGN <color_value>"""
+        """<color_decl> ::= ("tr"|"turn"|"cl"|"color") <identifier> ASSIGN <expression>"""
         keyword = self.advance()  # consume tr / turn / cl / color
         line = keyword.line
         name = self.expect(TokenType.IDENTIFIER,
                            "Expected identifier after color keyword").lexeme
         self.expect(TokenType.ASSIGN, "Expected '<=' in color declaration")
-        val = self.match(TokenType.WHITE, TokenType.BLACK)
-        if val is None:
-            curr = self.peek()
-            raise ParserError(
-                f"Expected 'white' or 'black' (got {curr.type.name} '{curr.lexeme}')",
-                curr.line,
-            )
-        return ColorDeclNode(name, val.lexeme, line)
+        val = self.parse_expression()
+        return ColorDeclNode(name, val, line)
 
     def parse_piece_decl(self) -> PieceDeclNode:
-        """<piece_decl> ::= ("pc"|"piece") <identifier> ASSIGN <piece_value>"""
+        """<piece_decl> ::= ("pc"|"piece") <identifier> ASSIGN <expression>"""
         keyword = self.advance()  # consume pc / piece
         line = keyword.line
         name = self.expect(TokenType.IDENTIFIER,
                            "Expected identifier after piece keyword").lexeme
         self.expect(TokenType.ASSIGN, "Expected '<=' in piece declaration")
-        value = self.parse_piece_value()
+        value = self.parse_expression()
         return PieceDeclNode(name, value, line)
 
     def parse_move_decl(self) -> MoveDeclNode:
@@ -201,41 +195,33 @@ class Parser:
     def parse_premove_decl(self) -> PremoveDeclNode:
         """
         <premove_decl> ::= PREMOVE IDENTIFIER
-                           LPAREN [ <formal_param_list> ] RPAREN
+                           LPAREN RPAREN
                            LBRACE [ <premove_body> ] RBRACE
-        <formal_param_list> ::= IDENTIFIER { COMMA IDENTIFIER }
-        <premove_body> ::= <move_item> { (COMMA | DOUBLE_COMMA) <move_item> }
+        <premove_body> ::= <move_literal> { DOUBLE_COMMA <move_literal> }
         """
         kw = self.advance()  # consume 'premove'
         line = kw.line
         name = self.expect(TokenType.IDENTIFIER,
                            "Expected identifier after 'premove'").lexeme
 
-        # --- formal parameter list ---
         self.expect(TokenType.LPAREN, "Expected '(' after premove name")
-        params = []
-        if not self.check(TokenType.RPAREN):
-            params.append(self.expect(TokenType.IDENTIFIER,
-                                      "Expected parameter name").lexeme)
-            while self.match(TokenType.COMMA):
-                params.append(self.expect(TokenType.IDENTIFIER,
-                                          "Expected parameter name after ','").lexeme)
-        self.expect(TokenType.RPAREN, "Expected ')' after parameter list")
+        self.expect(TokenType.RPAREN, "Expected ')' after '('")
 
         # --- premove body ---
         self.expect(TokenType.LBRACE, "Expected '{' for premove body")
         body = []
         if not self.check(TokenType.RBRACE):
-            first_item = self.parse_move_item()
+            first_tok = self.expect(TokenType.MOVE_LITERAL, "Expected move literal in premove body")
+            first_item = MoveLiteralNode(first_tok.lexeme, first_tok.line)
             body.append(PremoveItemNode(first_item, None, first_item.line))
-            while self.check(TokenType.COMMA, TokenType.DOUBLE_COMMA):
-                sep_tok = self.advance()  # consume , or ,,
-                sep_str = "DOUBLE_COMMA" if sep_tok.type == TokenType.DOUBLE_COMMA else "COMMA"
-                next_item = self.parse_move_item()
-                body.append(PremoveItemNode(next_item, sep_str, next_item.line))
+            while self.check(TokenType.DOUBLE_COMMA):
+                sep_tok = self.advance()  # consume ,,
+                next_tok = self.expect(TokenType.MOVE_LITERAL, "Expected move literal after ',,'")
+                next_item = MoveLiteralNode(next_tok.lexeme, next_tok.line)
+                body.append(PremoveItemNode(next_item, "DOUBLE_COMMA", next_item.line))
         self.expect(TokenType.RBRACE, "Expected '}' after premove body")
 
-        return PremoveDeclNode(name, params, body, line)
+        return PremoveDeclNode(name, body, line)
 
     # ------------------------------------------------------------------
     # Statement stubs
@@ -307,7 +293,7 @@ class Parser:
                 self.expect(TokenType.RPAREN, "Expected ')' after square")
                 self.expect(TokenType.ASSIGN,
                             "Expected '<=' after square accessor")
-                value = self.parse_piece_value()
+                value = self.parse_expression()
                 return SquareAssignmentNode(
                     id_tok.lexeme,
                     SquareLiteralNode(sq_tok.lexeme, sq_tok.line),
@@ -386,7 +372,7 @@ class Parser:
 
     def parse_premove_call(self) -> PremoveCallNode:
         """
-        <premove_call> ::= <identifier> LPAREN [ <premove_arg> ] RPAREN
+        <premove_call> ::= <identifier> LPAREN <premove_arg> RPAREN
         <premove_arg> ::= <identifier> | <one_side_move_list>
         <one_side_move_list> ::= <move_literal> { DOUBLE_COMMA <move_literal> }
         """
@@ -395,24 +381,23 @@ class Parser:
         self.expect(TokenType.LPAREN, "Expected '(' after premove name")
 
         args = []
-        if not self.check(TokenType.RPAREN):
-            if self.check(TokenType.IDENTIFIER):
-                tok = self.advance()
-                args.append(PremoveItemNode(IdentifierNode(tok.lexeme, tok.line), None, tok.line))
-            elif self.check(TokenType.MOVE_LITERAL):
-                tok = self.advance()
-                args.append(PremoveItemNode(MoveLiteralNode(tok.lexeme, tok.line), None, tok.line))
-                while self.check(TokenType.DOUBLE_COMMA):
-                    sep_tok = self.advance() # consume DOUBLE_COMMA
-                    move_tok = self.expect(TokenType.MOVE_LITERAL, "Expected move literal after ',,'")
-                    args.append(PremoveItemNode(MoveLiteralNode(move_tok.lexeme, move_tok.line), "DOUBLE_COMMA", move_tok.line))
-            else:
-                curr = self.peek()
-                raise ParserError(
-                    f"Expected identifier or move literal in premove call "
-                    f"(got {curr.type.name} '{curr.lexeme}')",
-                    curr.line,
-                )
+        if self.check(TokenType.IDENTIFIER):
+            tok = self.advance()
+            args.append(PremoveItemNode(IdentifierNode(tok.lexeme, tok.line), None, tok.line))
+        elif self.check(TokenType.MOVE_LITERAL):
+            tok = self.advance()
+            args.append(PremoveItemNode(MoveLiteralNode(tok.lexeme, tok.line), None, tok.line))
+            while self.check(TokenType.DOUBLE_COMMA):
+                sep_tok = self.advance() # consume DOUBLE_COMMA
+                move_tok = self.expect(TokenType.MOVE_LITERAL, "Expected move literal after ',,'")
+                args.append(PremoveItemNode(MoveLiteralNode(move_tok.lexeme, move_tok.line), "DOUBLE_COMMA", move_tok.line))
+        else:
+            curr = self.peek()
+            raise ParserError(
+                f"Expected identifier or move literal in premove call "
+                f"(got {curr.type.name} '{curr.lexeme}')",
+                curr.line,
+            )
 
         self.expect(TokenType.RPAREN, "Expected ')' after premove arguments")
         return PremoveCallNode(id_tok.lexeme, args, line)
@@ -442,6 +427,22 @@ class Parser:
         if self.check(TokenType.IDENTIFIER):
             if self.peek(1).type == TokenType.LPAREN:
                 return self.parse_premove_call()
+            # RHS board access expressions
+            if self.peek(1).type == TokenType.DOT:
+                next_type = self.peek(2).type
+                if next_type in (TokenType.TR, TokenType.TURN, TokenType.CL, TokenType.COLOR):
+                    id_tok = self.advance()
+                    self.advance() # consume DOT
+                    attr_tok = self.advance()
+                    return BoardAttributeNode(id_tok.lexeme, attr_tok.lexeme, id_tok.line)
+                if next_type in (TokenType.SQ, TokenType.SQUARE):
+                    id_tok = self.advance()
+                    self.advance() # consume DOT
+                    self.advance() # consume sq/square
+                    self.expect(TokenType.LPAREN, "Expected '(' after sq/square")
+                    sq_tok = self.expect(TokenType.SQUARE_LITERAL, "Expected square coordinate (e.g. A1)")
+                    self.expect(TokenType.RPAREN, "Expected ')' after square")
+                    return SquareAccessNode(id_tok.lexeme, SquareLiteralNode(sq_tok.lexeme, sq_tok.line), id_tok.line)
             tok = self.advance()
             return IdentifierNode(tok.lexeme, tok.line)
 
@@ -488,8 +489,7 @@ class Parser:
     def parse_eval_method_call(self) -> EvalMethodCallNode:
         """
         <eval_method_call> ::= "eval" DOT "move"
-                               LPAREN [ <actual_param_list> ] RPAREN
-        <actual_param_list> ::= <expression> { COMMA <expression> }
+                               LPAREN <expression> RPAREN
         """
         kw = self.advance()  # consume 'eval'
         line = kw.line
@@ -497,11 +497,7 @@ class Parser:
         self.expect(TokenType.MOVE, "Expected 'move' after 'eval.'")
         self.expect(TokenType.LPAREN, "Expected '(' after 'eval.move'")
 
-        args = []
-        if not self.check(TokenType.RPAREN):
-            args.append(self.parse_expression())
-            while self.match(TokenType.COMMA):
-                args.append(self.parse_expression())
+        args = [self.parse_expression()]
 
         self.expect(TokenType.RPAREN, "Expected ')' after eval.move arguments")
         return EvalMethodCallNode("move", args, line)

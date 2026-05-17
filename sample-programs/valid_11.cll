@@ -1,4 +1,4 @@
-premove white_setup(black_line) {
+premove white_setup() {
     d4,, Bf4,, e3,, Nf3,, c3
 }
 

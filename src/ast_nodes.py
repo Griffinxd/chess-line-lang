@@ -76,15 +76,17 @@ class BoardInitNode(ASTNode):
 
 
 class ColorDeclNode(ASTNode):
-    """Color/turn declaration: tr/turn/cl/color <id> <= white|black"""
+    """Color/turn declaration: tr/turn/cl/color <id> <= <expression>"""
 
-    def __init__(self, name: str, value: str, line: int):
+    def __init__(self, name: str, value, line: int):
         super().__init__(line)
         self.name = name         # variable name
-        self.value = value       # "white" / "black" / "WHITE" / "BLACK"
+        self.value = value       # ASTNode expression
 
     def dump(self, indent: int = 0) -> str:
-        return f"{self._prefix(indent)}ColorDecl: {self.name} = {self.value}"
+        lines = [f"{self._prefix(indent)}ColorDecl: {self.name}"]
+        lines.append(self.value.dump(indent + 1))
+        return "\n".join(lines)
 
 
 class PieceDeclNode(ASTNode):
@@ -118,18 +120,17 @@ class MoveDeclNode(ASTNode):
 class PremoveDeclNode(ASTNode):
     """
     Premove subprogram declaration:
-        premove <name>( [params] ) { [body] }
-    body items are separated by COMMA or DOUBLE_COMMA.
+        premove <name>() { [body] }
+    body items are separated by DOUBLE_COMMA.
     """
 
-    def __init__(self, name: str, params: list, body: list, line: int):
+    def __init__(self, name: str, body: list, line: int):
         super().__init__(line)
         self.name = name         # premove name
-        self.params = params     # list[str] — formal parameter names
         self.body = body         # list[ASTNode] — move items
 
     def dump(self, indent: int = 0) -> str:
-        lines = [f"{self._prefix(indent)}PremoveDecl: {self.name} params={self.params}"]
+        lines = [f"{self._prefix(indent)}PremoveDecl: {self.name}"]
         for item in self.body:
             lines.append(item.dump(indent + 1))
         return "\n".join(lines)
@@ -207,7 +208,7 @@ class AssignmentNode(ASTNode):
 class BoardAttributeNode(ASTNode):
     """
     Board attribute access: <id>.turn / <id>.tr / <id>.color / <id>.cl
-    Used as the left-hand side of an assignment.
+    Used as the left-hand side of an assignment, and now in expressions.
     """
 
     def __init__(self, board_name: str, attribute: str, line: int):
@@ -217,6 +218,22 @@ class BoardAttributeNode(ASTNode):
 
     def dump(self, indent: int = 0) -> str:
         return f"{self._prefix(indent)}BoardAttribute: {self.board_name}.{self.attribute}"
+
+
+class SquareAccessNode(ASTNode):
+    """
+    Square access in an expression: <id>.sq(<square_literal>) or <id>.square(<square_literal>)
+    """
+
+    def __init__(self, board_name: str, square, line: int):
+        super().__init__(line)
+        self.board_name = board_name
+        self.square = square     # SquareLiteralNode
+
+    def dump(self, indent: int = 0) -> str:
+        lines = [f"{self._prefix(indent)}SquareAccess: {self.board_name}"]
+        lines.append(self.square.dump(indent + 1))
+        return "\n".join(lines)
 
 
 class SquareAssignmentNode(ASTNode):
