@@ -2,7 +2,7 @@
 CLL (Chess Language) — Main entry point.
 
 Usage:
-    python main.py <filename.cll> [--dump-tokens] [--dump-ast]
+    python main.py <filename.cll> [--dump-tokens] [--dump-ast] [--type-check]
 """
 
 import sys
@@ -20,6 +20,8 @@ def main():
                     help="Print all tokens produced by the lexer")
     ap.add_argument("--dump-ast", action="store_true",
                     help="Parse and print the AST")
+    ap.add_argument("--type-check", action="store_true",
+                    help="Run the type checker after parsing")
     args = ap.parse_args()
 
     # Read source file
@@ -61,9 +63,21 @@ def main():
         print(ast.dump())
         return
 
+    # --type-check: run type checker
+    if args.type_check:
+        from type_checker import TypeChecker
+        try:
+            TypeChecker().check(ast)
+        except CllError as e:
+            print(e, file=sys.stderr)
+            sys.exit(1)
+        print("Type check successful.")
+        return
+
     # Default: just validate
     print("Parsing successful.")
 
 
 if __name__ == "__main__":
     main()
+

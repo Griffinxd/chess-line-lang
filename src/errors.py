@@ -24,3 +24,8 @@ class LexerError(CllError):
 class ParserError(CllError):
     """Raised when the parser encounters an unexpected token or missing syntax."""
     pass
+
+
+class TypeCheckError(CllError):
+    """Raised when the type checker detects a semantic or type compatibility error."""
+    pass
