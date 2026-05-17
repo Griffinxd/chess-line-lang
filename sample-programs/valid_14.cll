@@ -1,0 +1,11 @@
+// Type coercion example
+bd pos <= starting
+
+mv best_move <= eval.move(pos)
+tr side <= pos.tr
+pc king_piece <= pos.sq(E1)
+
+print(best_move)
+print(side)
+print(king_piece)
+print(eval(pos))

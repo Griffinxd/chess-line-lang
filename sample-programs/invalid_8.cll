@@ -1,0 +1,3 @@
+// Bad type coercions
+bd pos <= starting
+mv bad_move <= eval(pos) // returns a floating point number (this can only be used for printing)

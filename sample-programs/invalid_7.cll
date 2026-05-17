@@ -1,0 +1,3 @@
+// Invalid type coercion
+bd pos <= starting
+pc wrong <= pos.turn

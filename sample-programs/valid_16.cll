@@ -1,0 +1,12 @@
+// Read piece, then place copied piece elsewhere
+bd pos <= empty
+
+pos.tr <= white
+pos.sq(E1) <= W-king
+pos.sq(E8) <= B-king
+pos.sq(A1) <= W-rook
+
+pc copied_rook <= pos.sq(A1)
+pos.sq(H1) <= copied_rook
+
+print(pos)

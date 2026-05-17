@@ -1,0 +1,13 @@
+// Move variable inside position block
+bd pos <= starting
+mv opening_move <= e4
+
+pos.{
+    opening_move,
+    line c5 {
+        Nf3,
+        pos <= this
+    }
+}
+
+print(pos)

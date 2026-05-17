@@ -1,0 +1,18 @@
+// Accessor inside branch
+bd pos <= empty
+bd saved
+
+pos.tr <= white
+pos.sq(E1) <= W-king
+pos.sq(E8) <= B-king
+pos.sq(D1) <= W-queen
+
+pos.{
+    line e5 {
+        pc queen_piece <= pos.sq(D1)
+        saved <= this
+        print(queen_piece)
+    }
+}
+
+print(saved)

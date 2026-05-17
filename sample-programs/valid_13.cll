@@ -1,0 +1,8 @@
+// Valid type coercions
+bd pos <= starting
+
+tr side_to_move <= pos.tr // returns white 
+pc first_piece <= pos.sq(E1) // white king in E1 
+
+print(side_to_move)
+print(first_piece)

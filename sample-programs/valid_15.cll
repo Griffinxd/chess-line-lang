@@ -1,0 +1,12 @@
+// Piece variable reused in square setter
+bd pos <= empty
+pc wk <= W-king
+pc bk <= B-king
+pc wr <= W-rook
+
+pos.tr <= white
+pos.sq(E1) <= wk
+pos.sq(E8) <= bk
+pos.sq(H1) <= wr
+
+print(pos)

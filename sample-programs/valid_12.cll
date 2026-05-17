@@ -1,0 +1,15 @@
+// Type coercion examples
+bd pos <= empty
+
+// this part is already implemented
+pos.tr <= white
+pos.sq(E1) <= W-king
+pos.sq(E8) <= B-king
+pos.sq(A1) <= W-rook
+
+// this is where implicit type coercion happens
+pc king_piece <= pos.sq(E1) // Return the piece type in the square E1 white king
+pc rook_piece <= pos.sq(A1) // Piece in A1 white rook
+
+print(king_piece)
+print(rook_piece)

@@ -29,4 +29,11 @@ Language Model: Chatgpt
 Chat Link: https://chatgpt.com/share/69fc952e-38e8-838d-ba45-57e1e74ce858
 Description: Polishing grammar and token type list
 
+########################################################################################
 
+
+Interaction 6:
+Date: 17.05.2026
+Language Model: Chatgpt
+Chat Link: https://chatgpt.com/share/6a09d79d-3d88-83eb-9059-15261dd72cb6
+Description: Planning of type checker 

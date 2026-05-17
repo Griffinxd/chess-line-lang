@@ -1,0 +1,11 @@
+// Read turn, assign it to another board
+bd source <= starting
+bd target <= empty
+
+tr side <= source.turn
+target.tr <= side
+
+target.sq(E1) <= W-king
+target.sq(E8) <= B-king
+
+print(target)

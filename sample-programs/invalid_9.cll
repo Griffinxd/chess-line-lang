@@ -1,0 +1,3 @@
+// Bad type coercions 
+bd pos <= starting
+tr bad_turn <= pos.sq(E1)
