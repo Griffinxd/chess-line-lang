@@ -327,12 +327,29 @@ class Parser:
 
     def parse_move_item(self) -> ASTNode:
         """
-        <move_item> ::= <line_branch>
+        <move_item> ::= <declaration>
+                      | <line_branch>
                       | <assignment>
                       | <print_stmt>
                       | <expression_stmt>
         Dispatches by lookahead.
         """
+        # --- Keyword-led declarations ---
+        if self.check(TokenType.BD, TokenType.BOARD):
+            return self.parse_board_decl()
+
+        if self.check(TokenType.TR, TokenType.TURN, TokenType.CL, TokenType.COLOR):
+            return self.parse_color_decl()
+
+        if self.check(TokenType.PC, TokenType.PIECE):
+            return self.parse_piece_decl()
+
+        if self.check(TokenType.MV, TokenType.MOVE):
+            return self.parse_move_decl()
+
+        if self.check(TokenType.PREMOVE):
+            return self.parse_premove_decl()
+
         # LINE => line branch
         if self.check(TokenType.LINE):
             return self.parse_line_branch()

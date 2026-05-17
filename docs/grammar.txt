@@ -43,7 +43,8 @@
 
 <move_sequence> ::= <move_item> { COMMA <move_item> }
 
-<move_item> ::= <line_branch>
+<move_item> ::= <declaration>
+              | <line_branch>
               | <assignment>
               | <print_stmt>
               | <expression_stmt>
