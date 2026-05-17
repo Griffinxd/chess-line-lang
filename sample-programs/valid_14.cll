@@ -1,4 +1,4 @@
-// Type coercion example
+// Type example
 bd pos <= starting
 
 mv best_move <= eval.move(pos)

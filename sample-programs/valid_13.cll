@@ -1,4 +1,4 @@
-// Valid type coercions
+// Valid type access
 bd pos <= starting
 
 tr side_to_move <= pos.tr // returns white 
