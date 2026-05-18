@@ -47,6 +47,6 @@ Description: Interpreter design and runtime errors. Semantic ambiguity.
 Interaction: 8
 Date: 18.05.2026
 Language Model: Chatgpt
-Chat Link:
+Chat Link: https://chatgpt.com/share/6a0ad36c-fec0-8395-bc1f-34089efb7e21
 Description: Reorganizing the sample programs and test suites.
 

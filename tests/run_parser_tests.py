@@ -14,18 +14,18 @@ def run_tests():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     sample_dir = os.path.join(project_root, 'sample-programs')
 
-    valid_files = sorted(glob.glob(os.path.join(sample_dir, 'valid_*.cll')))
-    invalid_files = sorted(glob.glob(os.path.join(sample_dir, 'invalid_*.cll')))
+    valid_files = sorted(glob.glob(os.path.join(sample_dir, 'valid', '*.cll')))
+    invalid_files = sorted(glob.glob(os.path.join(sample_dir, 'parser-invalid', '*.cll')))
 
     passed = 0
     failed = 0
 
     if not valid_files:
-        print("❌ No valid_*.cll files found.")
+        print("❌ No valid/*.cll files found.")
         failed += 1
 
     if not invalid_files:
-        print("❌ No invalid_*.cll files found.")
+        print("❌ No parser-invalid/*.cll files found.")
         failed += 1
     
 

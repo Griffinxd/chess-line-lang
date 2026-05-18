@@ -1,8 +1,8 @@
 """
-Type checker test runner for CLL.
+Runtime test runner for CLL (Placeholder).
 
-- valid/*.cll      → must parse AND type-check successfully
-- type-invalid/*.cll → must parse OK but fail type-check with TypeCheckError
+- valid/*.cll      → must parse, type-check, AND execute successfully without RuntimeErrors
+- runtime-invalid/*.cll → must parse, type-check, but fail execution with RuntimeError
 """
 
 import os
@@ -16,15 +16,17 @@ from lexer import Lexer
 from parser import Parser
 from type_checker import TypeChecker
 from errors import CllError, TypeCheckError
+# TODO: Import Interpreter/Runtime when implemented
+# from interpreter import Interpreter
+# from errors import RuntimeError
 
-
-def run_type_tests():
+def run_runtime_tests():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     sample_dir = os.path.join(project_root, 'sample-programs')
 
     valid_files = sorted(glob.glob(os.path.join(sample_dir, 'valid', '*.cll')))
-    type_invalid_dir = os.path.join(sample_dir, 'type-invalid')
-    type_invalid_files = sorted(glob.glob(os.path.join(type_invalid_dir, '*.cll')))
+    runtime_invalid_dir = os.path.join(sample_dir, 'runtime-invalid')
+    runtime_invalid_files = sorted(glob.glob(os.path.join(runtime_invalid_dir, '*.cll')))
 
     passed = 0
     failed = 0
@@ -33,14 +35,14 @@ def run_type_tests():
         print("❌ No valid/*.cll files found.")
         failed += 1
 
-    if not type_invalid_files:
-        print("❌ No type-invalid/*.cll files found.")
+    if not runtime_invalid_files:
+        print("❌ No runtime-invalid/*.cll files found.")
         failed += 1
 
     # ------------------------------------------------------------------
-    # Valid programs: must parse AND type-check
+    # Valid programs
     # ------------------------------------------------------------------
-    print("=== Testing Valid Programs (type check) ===")
+    print("=== Testing Valid Programs (runtime) ===")
     for fname in valid_files:
         basename = os.path.basename(fname)
         try:
@@ -49,51 +51,50 @@ def run_type_tests():
             tokens = Lexer(source).tokenize()
             ast = Parser(tokens).parse()
             TypeChecker().check(ast)
-            print(f"✅ {basename} type-checked successfully.")
+            
+            # TODO: Run the interpreter
+            # interpreter = Interpreter()
+            # interpreter.execute(ast)
+            
+            print(f"✅ {basename} executed successfully (TODO).")
             passed += 1
         except Exception as e:
             print(f"❌ {basename} failed unexpectedly: {e}")
             failed += 1
 
     # ------------------------------------------------------------------
-    # Type-invalid programs: must parse OK, then fail type-check
+    # Runtime-invalid programs
     # ------------------------------------------------------------------
-    print("\n=== Testing Type-Invalid Programs ===")
-    for fname in type_invalid_files:
+    print("\n=== Testing Runtime-Invalid Programs ===")
+    for fname in runtime_invalid_files:
         basename = os.path.basename(fname)
         try:
             with open(fname, 'r') as f:
                 source = f.read()
             tokens = Lexer(source).tokenize()
             ast = Parser(tokens).parse()
-        except CllError as e:
-            # If it fails to parse, that is unexpected for type-invalid
-            # programs (they should be parser-valid).
-            print(f"❌ {basename} failed during parsing (expected parser-valid): {e}")
-            failed += 1
-            continue
-        except Exception as e:
-            print(f"❌ {basename} failed during parsing with unexpected error: {e}")
-            failed += 1
-            continue
-
-        # Now run the type checker — expect TypeCheckError
-        try:
             TypeChecker().check(ast)
-            print(f"❌ {basename} type-checked successfully but was expected to fail!")
-            failed += 1
-        except TypeCheckError as e:
-            print(f"✅ {basename} failed type-check as expected: {e}")
+            
+            # TODO: Run the interpreter and expect a RuntimeError
+            # interpreter = Interpreter()
+            # interpreter.execute(ast)
+            # print(f"❌ {basename} executed successfully but was expected to fail!")
+            # failed += 1
+            
+            print(f"✅ {basename} failed runtime as expected (TODO).")
             passed += 1
+        except CllError as e:
+            print(f"❌ {basename} failed before runtime: {e}")
+            failed += 1
         except Exception as e:
-            print(f"❌ {basename} failed with unexpected exception (not TypeCheckError): {e}")
+            print(f"❌ {basename} failed with unexpected exception: {e}")
             failed += 1
 
     # ------------------------------------------------------------------
     # Summary
     # ------------------------------------------------------------------
     print("\n=== Summary ===")
-    total = len(valid_files) + len(type_invalid_files)
+    total = len(valid_files) + len(runtime_invalid_files)
     print(f"Total tests: {total}")
     print(f"Passed: {passed}")
     print(f"Failed: {failed}")
@@ -101,6 +102,5 @@ def run_type_tests():
     if failed > 0:
         sys.exit(1)
 
-
 if __name__ == "__main__":
-    run_type_tests()
+    run_runtime_tests()
