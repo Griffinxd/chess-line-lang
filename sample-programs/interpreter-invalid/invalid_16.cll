@@ -1,0 +1,7 @@
+// Missing stockfish/engine
+
+bd pos <= starting
+
+print(eval(pos))
+
+// Expected: RuntimeCllError: Missing Stockfish engine

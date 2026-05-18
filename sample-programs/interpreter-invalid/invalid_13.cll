@@ -1,0 +1,6 @@
+// Empty square access
+bd pos <= starting
+
+pc p <= pos.sq(E4)
+
+print(p)

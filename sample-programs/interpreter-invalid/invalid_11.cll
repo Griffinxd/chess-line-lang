@@ -1,0 +1,12 @@
+// Invalid move
+bd pos <= starting
+
+pos.{
+    e5
+}
+
+print(pos)
+
+// Expected
+
+// RuntimeCllError: Illegal move 'e5'

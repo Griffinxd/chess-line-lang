@@ -1,0 +1,8 @@
+// Uninitialized board/variable
+bd pos
+
+print(pos)
+
+// Expected:
+
+// RuntimeCllError: Use of uninitialized variable 'pos'

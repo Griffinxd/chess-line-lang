@@ -1,0 +1,16 @@
+// Incompatible premove sequences
+premove white_line() {
+    e4,,Nf3
+}
+
+premove black_line() {
+    e5,,e5
+}
+
+bd pos <= starting
+
+pos <= white_line(black_line)
+
+print(pos)
+
+// Expected: RuntimeCllError: Incompatible premove lines

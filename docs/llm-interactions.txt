@@ -32,8 +32,14 @@ Description: Polishing grammar and token type list
 ########################################################################################
 
 
-Interaction 6:
+Interaction: 6
 Date: 17.05.2026
 Language Model: Chatgpt
 Chat Link: https://chatgpt.com/share/6a09d79d-3d88-83eb-9059-15261dd72cb6
 Description: Planning of type checker 
+
+Interaction: 7
+Date: 18.05.2026
+Language Model: Chatgpt
+Chat Link:
+Description: Interpreter design and runtime errors. Semantic ambiguity.

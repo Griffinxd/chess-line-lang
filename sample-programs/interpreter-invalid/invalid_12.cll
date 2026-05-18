@@ -1,0 +1,11 @@
+// Invalid branch
+bd pos <= starting
+
+pos.{
+    e4,
+    line e4 {
+        Nf3
+    }
+}
+
+// Expected: RuntimeCllError: Illegal move 'e4' in line branch

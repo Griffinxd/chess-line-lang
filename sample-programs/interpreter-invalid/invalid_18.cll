@@ -1,0 +1,14 @@
+// Incompatible premove sequences
+premove white_line(){
+    e4,,e5
+}
+
+premove black_line(){
+    e5,,Nf6
+}
+bd pos <= starting
+
+pos <= white_line(black_line) // Expanded to applied move -> e4,e5,e5,Nf6 which is illegal after moves
+
+print(pos)
+// Expected: RuntimeCllError: Incompatible premove lines

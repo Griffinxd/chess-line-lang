@@ -1,0 +1,8 @@
+// Invalid FEN
+bd pos <= "this is not a fen"
+
+print(pos)
+
+//Expected:
+
+// RuntimeCllError: Invalid FEN string
