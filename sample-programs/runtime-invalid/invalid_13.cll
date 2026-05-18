@@ -4,3 +4,5 @@ bd pos <= starting
 pc p <= pos.sq(E4)
 
 print(p)
+
+// Expected: RuntimeCllError: Empty square access at E4

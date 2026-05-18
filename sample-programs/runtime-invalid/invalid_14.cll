@@ -3,6 +3,4 @@ bd pos
 
 print(pos)
 
-// Expected:
-
-// RuntimeCllError: Use of uninitialized variable 'pos'
+// Expected: RuntimeCllError: Use of uninitialized variable 'pos'
