@@ -1,0 +1,11 @@
+// Define premove and apply it to starting board
+premove white_line(){
+    e4,,Nf3,,Bc4
+}
+
+bd pos <= starting
+
+pos <= white_line(e5,,Nc6,,Bc5)
+
+print(pos)
+// Expected: prints legal Italian-like position

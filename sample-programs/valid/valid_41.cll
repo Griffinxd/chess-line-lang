@@ -1,0 +1,6 @@
+// eval.move(board) returns best move
+bd pos <= starting
+mv best <= eval.move(pos)
+
+print(best)
+// Expected: prints best move suggested by engine

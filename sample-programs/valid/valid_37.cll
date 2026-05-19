@@ -1,0 +1,11 @@
+// Apply premove with inline one-side move list
+premove white_line(){
+    d4,,Bf4,,e3
+}
+
+bd pos <= starting
+
+pos <= white_line(d5,,Nf6,,e6)
+
+print(pos)
+// Expected: prints board after London-style setup

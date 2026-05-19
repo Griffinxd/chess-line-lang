@@ -1,0 +1,8 @@
+// Assign piece from another square
+bd pos <= empty
+
+pos.sq(E1) <= W-king
+pos.sq(E2) <= pos.sq(E1)
+
+print(pos.sq(E2))
+// Expected: prints W-king

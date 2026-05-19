@@ -1,0 +1,17 @@
+// Incompatible premove lines
+premove white_line(){
+    e4,,e5
+}
+
+premove black_line(){
+    e5,,Nf6
+}
+
+bd pos <= starting
+
+pos <= white_line(black_line)
+// Expanded to applied moves: e4,e5,e5,Nf6
+// The second e5 is illegal because it is white's turn and white cannot play e5 there.
+
+print(pos)
+// Expected: RuntimeCllError: IncompatiblePremoveError

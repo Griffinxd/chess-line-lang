@@ -1,0 +1,5 @@
+// eval(board) on legal board
+bd pos <= starting
+
+print(eval(pos))
+// Expected: prints engine evaluation score

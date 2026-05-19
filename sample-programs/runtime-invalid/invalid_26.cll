@@ -1,0 +1,11 @@
+// Premove contains illegal move sequence
+premove bad_white(){
+    e4,,e5
+}
+
+bd pos <= starting
+
+pos <= bad_white(e5,,Nc6)
+
+print(pos)
+// Expected: RuntimeCllError: IllegalMoveError

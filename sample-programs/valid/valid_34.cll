@@ -1,0 +1,8 @@
+// Overwrite existing square
+bd pos <= empty
+
+pos.sq(E1) <= W-king
+pos.sq(E1) <= W-queen
+
+print(pos.sq(E1))
+// Expected: prints W-queen

@@ -1,0 +1,9 @@
+// eval(board) on illegal board
+bd pos <= empty
+
+pos.sq(E1) <= W-king
+pos.sq(E2) <= B-king
+pos.turn <= white
+
+print(eval(pos))
+// Expected: RuntimeCllError: IllegalBoardError

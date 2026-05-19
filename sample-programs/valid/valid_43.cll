@@ -1,0 +1,11 @@
+// Print eval.move result after legal moves
+bd pos <= starting
+
+pos.{
+    d4,
+    d5,
+    c4
+}
+
+print(eval.move(pos))
+// Expected: prints engine best move for black

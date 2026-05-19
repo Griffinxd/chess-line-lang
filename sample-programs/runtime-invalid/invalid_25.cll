@@ -1,0 +1,5 @@
+// Read empty square
+bd pos <= empty
+
+print(pos.sq(E1))
+// Expected: RuntimeCllError: EmptySquareError

@@ -1,0 +1,15 @@
+// Apply premove with identifier argument
+premove white_line(){
+    e4,,Nf3,,Bc4
+}
+
+premove black_line(){
+    e5,,Nc6,,Bc5
+}
+
+bd pos <= starting
+
+pos <= white_line(black_line)
+
+print(pos)
+// Expected: prints board after e4,e5,Nf3,Nc6,Bc4,Bc5

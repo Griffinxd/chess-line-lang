@@ -1,0 +1,10 @@
+// Assign using sq and square aliases
+bd pos <= empty
+
+pos.sq(E1) <= W-king
+pos.square(E8) <= B-king
+
+print(pos.sq(E1))
+print(pos.square(E8))
+// Expected: prints W-king
+// Expected: prints B-king

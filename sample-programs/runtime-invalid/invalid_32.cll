@@ -1,0 +1,5 @@
+// eval.move(board) without Stockfish configured
+bd pos <= starting
+
+print(eval.move(pos))
+// Expected: RuntimeCllError: MissingEngineError

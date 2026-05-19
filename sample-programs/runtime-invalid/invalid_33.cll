@@ -1,0 +1,6 @@
+// Engine crashes or fails during eval(board)
+bd pos <= starting
+
+print(eval(pos))
+// Expected: RuntimeCllError: EngineEvaluationError
+// Note: run this with a broken/mock Stockfish path or force engine failure in the test harness.

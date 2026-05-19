@@ -1,0 +1,5 @@
+// eval(board) without Stockfish configured
+bd pos <= starting
+
+print(eval(pos))
+// Expected: RuntimeCllError: MissingEngineError

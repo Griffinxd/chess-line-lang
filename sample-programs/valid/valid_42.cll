@@ -1,0 +1,12 @@
+// Print eval score after legal moves
+bd pos <= starting
+
+pos.{
+    e4,
+    e5,
+    Nf3,
+    Nc6
+}
+
+print(eval(pos))
+// Expected: prints engine evaluation score for legal position

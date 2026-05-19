@@ -1,0 +1,15 @@
+// Incompatible-looking but actually legal premove combination
+premove white_line(){
+    e4,,Nf3,,Bb5
+}
+
+premove black_line(){
+    c5,,Nc6,,g6
+}
+
+bd pos <= starting
+
+pos <= white_line(black_line)
+
+print(pos)
+// Expected: legal position after e4,c5,Nf3,Nc6,Bb5,g6

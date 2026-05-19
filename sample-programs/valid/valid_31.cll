@@ -1,0 +1,7 @@
+// Assign piece to empty board square and print it
+bd pos <= empty
+
+pos.sq(E1) <= W-king
+
+print(pos.sq(E1))
+// Expected: prints W-king
