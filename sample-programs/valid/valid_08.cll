@@ -15,7 +15,7 @@ main_line.{
         line Nf6 {
             Nc3,
             d5,
-            cxd5,
+            exd5,
             main_line <= this
         }
     }

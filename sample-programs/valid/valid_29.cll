@@ -1,0 +1,16 @@
+// valid_29.cll — nested line branches
+bd pos <= starting
+bd nested_pos
+
+pos.{
+    e4,
+    line e5 {
+        Nf3,
+        line Nc6 {
+            Bb5,
+            nested_pos <= this
+        }
+    }
+}
+
+print(nested_pos)

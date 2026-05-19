@@ -11,7 +11,7 @@ puzzle.{
     },
     line e5 {
         Nf3,
-        Nc3,
+        Nc6,
         puzzle_1 <= this
     }
 }
