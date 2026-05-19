@@ -24,6 +24,7 @@ from ast_nodes import (
 from errors import (
     RuntimeCllError, UninitializedVariableError, InvalidFENError,
     IllegalMoveError, EmptySquareError, IllegalBoardError,
+    IncompatiblePremoveError,
 )
 
 
@@ -338,6 +339,10 @@ class Interpreter:
     def _exec_assignment(self, node: AssignmentNode):
         """Execute a simple or board-attribute assignment."""
         if isinstance(node.target, IdentifierNode):
+            if isinstance(node.value, PremoveCallNode):
+                self._exec_premove_assignment(node)
+                return
+
             value = self._eval_expr(node.value)
             name = node.target.name
             # Board assignment must copy to prevent aliasing.
@@ -519,6 +524,89 @@ class Interpreter:
             ) from e
 
     # ------------------------------------------------------------------
+    # Premove execution (Batch 5A)
+    # ------------------------------------------------------------------
+
+    def _exec_premove_assignment(self, node: AssignmentNode):
+        """
+        Execute an assignment of a premove sequence to a board.
+        pos <= white_line(black_line)
+        """
+        name = node.target.name
+        board = self._lookup_variable(name, node.line)
+        
+        if not isinstance(board, chess.Board):
+            raise RuntimeCllError(f"Target '{name}' is not a board", node.line)
+            
+        self._assert_valid_board(board, node.line)
+        
+        merged_moves, is_named_merge = self._eval_premove_call(node.value)
+        
+        new_board = board.copy()
+        for san in merged_moves:
+            try:
+                new_board.push_san(san)
+            except (chess.IllegalMoveError, chess.InvalidMoveError,
+                    chess.AmbiguousMoveError, ValueError) as e:
+                if is_named_merge:
+                    raise IncompatiblePremoveError(
+                        "Incompatible premove lines", node.value.line
+                    ) from e
+                else:
+                    raise IllegalMoveError(
+                        f"Illegal move '{san}'", node.value.line
+                    ) from e
+                    
+        self._env[name] = new_board
+
+    def _expand_premove(self, name: str, line: int) -> list[str]:
+        """Expand a named premove into a list of SAN strings."""
+        if name not in self._premoves:
+            raise RuntimeCllError(f"Undefined premove '{name}'", line)
+        
+        decl = self._premoves[name]
+        moves = []
+        for item in decl.body:
+            inner = item.item if isinstance(item, PremoveItemNode) else item
+            if isinstance(inner, MoveLiteralNode):
+                moves.append(inner.notation)
+            else:
+                moves.append(str(self._eval_expr(inner)))
+        return moves
+
+    def _eval_premove_call(self, node: PremoveCallNode) -> tuple[list[str], bool]:
+        """
+        Expand and interleave a premove call.
+        Returns (merged_moves_list, is_named_merge)
+        """
+        base_moves = self._expand_premove(node.name, node.line)
+        arg_moves = []
+        is_named_merge = False
+
+        if node.args:
+            first_arg = node.args[0].item if isinstance(node.args[0], PremoveItemNode) else node.args[0]
+            if isinstance(first_arg, IdentifierNode):
+                arg_moves = self._expand_premove(first_arg.name, first_arg.line)
+                is_named_merge = True
+            else:
+                for arg in node.args:
+                    inner = arg.item if isinstance(arg, PremoveItemNode) else arg
+                    if isinstance(inner, MoveLiteralNode):
+                        arg_moves.append(inner.notation)
+                    else:
+                        arg_moves.append(str(self._eval_expr(inner)))
+
+        merged = []
+        max_len = max(len(base_moves), len(arg_moves))
+        for i in range(max_len):
+            if i < len(base_moves):
+                merged.append(base_moves[i])
+            if i < len(arg_moves):
+                merged.append(arg_moves[i])
+
+        return merged, is_named_merge
+
+    # ------------------------------------------------------------------
     # Square assignment
     # ------------------------------------------------------------------
 
@@ -605,11 +693,9 @@ class Interpreter:
                 "eval.move() is not yet implemented", node.line
             )
 
-        # --- Premove call (Batch 5) ---
+        # --- Premove call (Batch 5A) ---
         if isinstance(node, PremoveCallNode):
-            raise RuntimeCllError(
-                "Premove call execution is not yet implemented", node.line
-            )
+            return self._eval_premove_call(node)
 
         raise RuntimeCllError(
             f"Cannot evaluate node: {type(node).__name__}", node.line
