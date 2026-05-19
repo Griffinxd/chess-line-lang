@@ -23,7 +23,7 @@ from ast_nodes import (
 )
 from errors import (
     RuntimeCllError, UninitializedVariableError, InvalidFENError,
-    IllegalMoveError,
+    IllegalMoveError, EmptySquareError, IllegalBoardError,
 )
 
 
@@ -66,6 +66,103 @@ _CHESS_TO_COLOR_STR = {
 
 # Attribute aliases that all mean "turn".
 _TURN_ALIASES = frozenset({"turn", "tr", "color", "cl"})
+
+
+# =====================================================================
+# Piece-conversion helpers
+# =====================================================================
+
+# Map CLL color prefix (case-insensitive) → chess.WHITE / chess.BLACK.
+_PIECE_COLOR_PREFIX = {
+    "w":     chess.WHITE,
+    "white": chess.WHITE,
+    "b":     chess.BLACK,
+    "black": chess.BLACK,
+}
+
+# Map CLL piece name (case-insensitive) → chess piece type constant.
+_PIECE_NAME_TO_TYPE = {
+    "king":   chess.KING,
+    "queen":  chess.QUEEN,
+    "rook":   chess.ROOK,
+    "bishop": chess.BISHOP,
+    "knight": chess.KNIGHT,
+    "pawn":   chess.PAWN,
+    "k":      chess.KING,
+    "q":      chess.QUEEN,
+    "r":      chess.ROOK,
+    "b":      chess.BISHOP,
+    "n":      chess.KNIGHT,
+    "p":      chess.PAWN,
+}
+
+# Reverse map: chess piece type → canonical CLL name (lowercase).
+_PIECE_TYPE_TO_NAME = {
+    chess.KING:   "king",
+    chess.QUEEN:  "queen",
+    chess.ROOK:   "rook",
+    chess.BISHOP: "bishop",
+    chess.KNIGHT: "knight",
+    chess.PAWN:   "pawn",
+}
+
+# Reverse map: chess color → CLL prefix.
+_CHESS_COLOR_TO_PREFIX = {
+    chess.WHITE: "W",
+    chess.BLACK: "B",
+}
+
+
+def _cll_piece_to_chess(piece_str: str, line: int) -> chess.Piece:
+    """
+    Convert a CLL piece literal string to a ``chess.Piece``.
+
+    Accepted formats: ``W-king``, ``B-Q``, ``white-rook``, etc.
+    """
+    parts = piece_str.split("-", 1)
+    if len(parts) != 2:
+        raise RuntimeCllError(
+            f"Invalid piece literal: '{piece_str}'", line
+        )
+    prefix, name = parts
+    color = _PIECE_COLOR_PREFIX.get(prefix.lower())
+    ptype = _PIECE_NAME_TO_TYPE.get(name.lower())
+    if color is None or ptype is None:
+        raise RuntimeCllError(
+            f"Invalid piece literal: '{piece_str}'", line
+        )
+    return chess.Piece(ptype, color)
+
+
+def _chess_piece_to_cll(piece: chess.Piece) -> str:
+    """
+    Convert a ``chess.Piece`` back to its canonical CLL string.
+
+    Example: ``chess.Piece(chess.KING, chess.WHITE)`` → ``"W-king"``.
+    """
+    prefix = _CHESS_COLOR_TO_PREFIX[piece.color]
+    name = _PIECE_TYPE_TO_NAME[piece.piece_type]
+    return f"{prefix}-{name}"
+
+
+# =====================================================================
+# Square-conversion helpers
+# =====================================================================
+
+# Map CLL square literal (e.g. "E1") → chess.Square int.
+def _cll_square_to_chess(square_str: str, line: int) -> chess.Square:
+    """
+    Convert a CLL square literal to a ``chess.Square``.
+
+    CLL uses uppercase file letters: ``E1``, ``A8``, etc.
+    python-chess uses lowercase: ``chess.E1``, etc.
+    """
+    try:
+        return chess.parse_square(square_str.lower())
+    except ValueError:
+        raise RuntimeCllError(
+            f"Invalid square: '{square_str}'", line
+        )
 
 
 # =====================================================================
@@ -312,6 +409,9 @@ class Interpreter:
                 node.line,
             )
 
+        # Validate board legality before executing chess-semantic moves.
+        self._assert_valid_board(board, node.line)
+
         # Push the board onto the context stack so `this` resolves.
         self._board_stack.append(board)
         try:
@@ -419,15 +519,30 @@ class Interpreter:
             ) from e
 
     # ------------------------------------------------------------------
-    # Square assignment (Batch 4 stub)
+    # Square assignment
     # ------------------------------------------------------------------
 
     def _exec_square_assignment(self, node: SquareAssignmentNode):
-        """Execute a square assignment. Placeholder until Batch 4."""
-        # TODO (Batch 4): place piece on board square.
-        raise RuntimeCllError(
-            "Square assignment is not yet implemented", node.line
-        )
+        """
+        Execute a square assignment: pos.sq(E1) <= W-king.
+
+        Places a chess.Piece on the given square of the board.
+        """
+        board = self._lookup_variable(node.board_name, node.line)
+
+        if not isinstance(board, chess.Board):
+            raise RuntimeCllError(
+                f"Square assignment target '{node.board_name}' is not a board",
+                node.line,
+            )
+
+        square = _cll_square_to_chess(node.square.value, node.line)
+        piece_value = self._eval_expr(node.value)
+
+        # Convert CLL piece string to chess.Piece.
+        piece = _cll_piece_to_chess(piece_value, node.line)
+
+        board.set_piece_at(square, piece)
 
     # ------------------------------------------------------------------
     # Expression evaluator
@@ -474,11 +589,9 @@ class Interpreter:
         if isinstance(node, BoardAttributeNode):
             return self._eval_board_attr_access(node)
 
-        # --- Square access (Batch 4) ---
+        # --- Square access ---
         if isinstance(node, SquareAccessNode):
-            raise RuntimeCllError(
-                "Square access is not yet implemented", node.line
-            )
+            return self._eval_square_access(node)
 
         # --- eval() (Batch 5) ---
         if isinstance(node, EvalCallNode):
@@ -527,6 +640,53 @@ class Interpreter:
             )
 
         return _CHESS_TO_COLOR_STR[board.turn]
+
+    # ------------------------------------------------------------------
+    # Square access
+    # ------------------------------------------------------------------
+
+    def _eval_square_access(self, node: SquareAccessNode):
+        """
+        Evaluate a square read: pos.sq(E1) / pos.square(A8).
+
+        Returns a CLL piece string (e.g. "W-king").
+        Raises EmptySquareError if the square is empty.
+        """
+        board = self._lookup_variable(node.board_name, node.line)
+
+        if not isinstance(board, chess.Board):
+            raise RuntimeCllError(
+                f"Square access target '{node.board_name}' is not a board",
+                node.line,
+            )
+
+        square = _cll_square_to_chess(node.square.value, node.line)
+        piece = board.piece_at(square)
+
+        if piece is None:
+            raise EmptySquareError(
+                f"Empty square at {node.square.value}", node.line
+            )
+
+        return _chess_piece_to_cll(piece)
+
+    # ------------------------------------------------------------------
+    # Board validity check
+    # ------------------------------------------------------------------
+
+    def _assert_valid_board(self, board: chess.Board, line: int):
+        """
+        Assert that a board position is valid for chess-semantic
+        operations (move execution, line branches, eval, etc.).
+
+        Manually constructed boards may be invalid (e.g. adjacent kings).
+        Those boards are allowed to *exist* but not to be used for move
+        execution or engine evaluation.
+        """
+        if not board.is_valid():
+            raise IllegalBoardError(
+                "Illegal board position", line
+            )
 
     # ------------------------------------------------------------------
     # Variable lookup with uninitialized check
