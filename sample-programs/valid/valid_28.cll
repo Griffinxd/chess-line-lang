@@ -1,0 +1,15 @@
+// valid_28.cll — branch does not mutate main line
+bd pos <= starting
+bd branch_pos
+
+pos.{
+    e4,
+    line e5 {
+        Nf3,
+        branch_pos <= this
+    },
+    d5
+}
+
+print(pos)
+print(branch_pos)

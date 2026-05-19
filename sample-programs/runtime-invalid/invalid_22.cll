@@ -1,0 +1,22 @@
+// Branch assignment overwrite causing illegal move later
+bd pos <= starting
+bd saved
+
+pos.{
+    e4,
+
+    line e5 {
+        saved <= this
+    },
+
+    line c5 {
+        saved <= this
+    }
+}
+
+saved.{
+    e4 // saved now points to a black-to-move position
+}
+
+print(saved)
+// Expected: RuntimeCllError: Illegal move after branch overwrite

@@ -1,0 +1,15 @@
+// Branch move legal but later continuation illegal
+bd pos <= starting
+
+pos.{
+    e4,
+
+    line c5 {
+        Nf3,
+        Nc6,
+        Nc6 // duplicate illegal move
+    }
+}
+
+print(pos)
+// Expected: RuntimeCllError: Illegal move in branch continuation

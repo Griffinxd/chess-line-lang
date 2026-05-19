@@ -1,0 +1,24 @@
+// Valid line branch copy semantics
+bd pos <= starting
+
+pos.{
+    e4,
+
+    line e5 { // branch starts from copied board after e4, then applies e5
+        Nf3 // this affects only the branch copy
+    },
+
+    line c5 { // another independent branch copy after e4
+        d4 // this also affects only this branch copy
+    }
+}
+
+print(pos)
+// Expected: prints the original board after only e4
+// Explanation:
+// - pos starts from the starting position.
+// - e4 is applied to the real pos board.
+// - line e5 runs on a copied board, not directly on pos.
+// - line c5 also runs on a separate copied board.
+// - Therefore branch moves do not mutate pos.
+// - Final pos should still be the position after 1. e4 only.

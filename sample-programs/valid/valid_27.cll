@@ -1,0 +1,19 @@
+// valid_27.cll — two line branches
+bd pos <= starting
+bd after_e5
+bd after_c5
+
+pos.{
+    e4,
+    line e5 {
+        Nf3,
+        after_e5 <= this
+    },
+    line c5 {
+        Nf3,
+        after_c5 <= this
+    }
+}
+
+print(after_e5)
+print(after_c5)

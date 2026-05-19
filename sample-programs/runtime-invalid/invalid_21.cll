@@ -1,0 +1,12 @@
+// nested branch illegal move
+bd pos <= starting
+
+pos.{
+    e4,
+    line e5 {
+        Nf3,
+        line Nf3 { // black cannot respond with Nf3
+            Nc6
+        }
+    }
+}

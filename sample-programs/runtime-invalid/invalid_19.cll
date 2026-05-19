@@ -1,0 +1,9 @@
+// Illegal branch move
+bd pos <= starting
+
+pos.{
+    e4,
+    line e4 { // black cannot play e4 immediately after white already played e4
+        Nf3
+    }
+}

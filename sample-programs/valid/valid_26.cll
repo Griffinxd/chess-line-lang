@@ -1,0 +1,10 @@
+// valid_26.cll — this assignment inside block
+bd pos <= starting
+bd saved
+
+pos.{
+    e4,
+    saved <= this
+}
+
+print(saved)

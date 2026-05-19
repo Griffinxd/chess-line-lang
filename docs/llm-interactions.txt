@@ -61,3 +61,9 @@ Date: 19.05.2026
 Language Model: Chatgpt
 Chat Link: https://chatgpt.com/share/6a0c679e-ff0c-8388-b63d-407262906009
 Description: Python chess and interpreter layer. Implementation basics.
+
+Interaction: 11
+Date: 19.05.2026
+Language Model: Chatgpt
+Chat Link: https://chatgpt.com/share/6a0c6f6c-db98-8389-a794-c9df8c461c32
+Description: Generating tests for branching and polishing

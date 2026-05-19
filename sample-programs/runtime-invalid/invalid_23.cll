@@ -1,0 +1,15 @@
+// Parent line becomes illegal before branch executes
+bd pos <= starting
+
+pos.{
+    e4,
+    e5,
+    e5, // illegal move already corrupts line
+
+    line Nc6 {
+        Nf3
+    }
+}
+
+print(pos)
+// Expected: RuntimeCllError: Illegal move in main line

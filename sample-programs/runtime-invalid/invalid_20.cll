@@ -1,0 +1,9 @@
+// Illegal continuation inside branch
+bd pos <= starting
+
+pos.{
+    e4,
+    line e5 {
+        e5 // white cannot play e5 again
+    }
+}
