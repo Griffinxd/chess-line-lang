@@ -8,6 +8,9 @@ puzzle.{
     },
     line Kb1 {
         print(eval(this)),
-        puzzle.sq(E2) <= W-queen
-    }
+        puzzle.sq(E2) <= W-queen,
+        print(this)
+    },
+    Rd8,
+    print(eval(this))
 }
