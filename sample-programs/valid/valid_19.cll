@@ -8,8 +8,8 @@ pos.sq(E8) <= B-king
 pos.sq(D1) <= W-queen
 
 pos.{
-    line e5 {
-        pc queen_piece <= pos.sq(D1),
+    line Qh5 {
+        pc queen_piece <= pos.sq(H5),
         saved <= this,
         print(queen_piece)
     }
