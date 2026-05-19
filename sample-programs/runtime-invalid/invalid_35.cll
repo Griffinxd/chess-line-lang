@@ -1,0 +1,11 @@
+// invalid_Y.cll
+// Illegal board used for engine evaluation
+
+bd pos <= empty
+
+pos.sq(E1) <= W-king
+pos.sq(E2) <= B-king
+
+print(eval(pos))
+
+// Expected: IllegalBoardError

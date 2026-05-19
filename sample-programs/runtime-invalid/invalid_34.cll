@@ -1,0 +1,13 @@
+// invalid_34.cll
+// Illegal board used for move execution
+
+bd pos <= empty
+
+pos.sq(E1) <= W-king
+pos.sq(E2) <= B-king
+
+pos.{
+    Kf1
+}
+
+// Expected: IllegalBoardError
