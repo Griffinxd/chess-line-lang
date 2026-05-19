@@ -23,6 +23,7 @@ from ast_nodes import (
 )
 from errors import (
     RuntimeCllError, UninitializedVariableError, InvalidFENError,
+    IllegalMoveError,
 )
 
 
@@ -94,6 +95,12 @@ class Interpreter:
         # (Batch 5).
         self._premoves: dict[str, PremoveDeclNode] = {}
 
+        # Board context stack — tracks the "current board" during
+        # position block / line branch execution.  `this` evaluates to
+        # a copy of the top-of-stack board.  Empty outside of any
+        # position block.
+        self._board_stack: list[chess.Board] = []
+
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
@@ -142,10 +149,7 @@ class Interpreter:
             self._eval_expr(node.expr)
 
         elif isinstance(node, LineBranchNode):
-            # TODO (Batch 3): line branch execution
-            raise RuntimeCllError(
-                "Line branch execution is not yet implemented", node.line
-            )
+            self._exec_line_branch(node)
 
         else:
             raise RuntimeCllError(
@@ -289,15 +293,130 @@ class Interpreter:
         board.turn = chess_color
 
     # ------------------------------------------------------------------
-    # Position block (Batch 3 stub)
+    # Position block execution
     # ------------------------------------------------------------------
 
     def _exec_position_block(self, node: PositionBlockNode):
-        """Execute a position block. Placeholder until Batch 3."""
-        # TODO (Batch 3): push moves onto a board copy, handle branches.
-        raise RuntimeCllError(
-            "Position block execution is not yet implemented", node.line
-        )
+        """
+        Execute a position block: pos.{ move_items... }
+
+        Moves are applied sequentially to the actual board stored in
+        the runtime environment.  Line branches operate on copied
+        board states and never mutate the mainline board.
+        """
+        board = self._lookup_variable(node.board_name, node.line)
+
+        if not isinstance(board, chess.Board):
+            raise RuntimeCllError(
+                f"Position block target '{node.board_name}' is not a board",
+                node.line,
+            )
+
+        # Push the board onto the context stack so `this` resolves.
+        self._board_stack.append(board)
+        try:
+            for item in node.moves:
+                self._exec_move_item(item, board)
+        finally:
+            self._board_stack.pop()
+
+    def _exec_move_item(self, node, board: chess.Board):
+        """
+        Execute a single item inside a position block or line branch.
+
+        Move items can be:
+        - MoveLiteralNode / ExpressionStmtNode wrapping a MoveLiteral/Identifier
+          → push the move on the board
+        - LineBranchNode → execute on a copied board
+        - AssignmentNode, PrintStmtNode, declarations → delegate to statement
+        """
+        # --- Move literal: push move on board ---
+        if isinstance(node, MoveLiteralNode):
+            self._push_san(board, node.notation, node.line)
+            return
+
+        # --- Expression statement wrapping a move literal or identifier ---
+        if isinstance(node, ExpressionStmtNode):
+            if isinstance(node.expr, MoveLiteralNode):
+                self._push_san(board, node.expr.notation, node.expr.line)
+                return
+            if isinstance(node.expr, IdentifierNode):
+                value = self._lookup_variable(node.expr.name, node.expr.line)
+                # If the identifier resolves to a move string, push it.
+                if isinstance(value, str) and not value.startswith("<"):
+                    self._push_san(board, value, node.expr.line)
+                    return
+            # Other expression statements: evaluate for side effects.
+            self._eval_expr(node.expr)
+            return
+
+        # --- Line branch: execute on a copy ---
+        if isinstance(node, LineBranchNode):
+            self._exec_line_branch_on(node, board)
+            return
+
+        # --- All other statements (assignments, prints, declarations) ---
+        self._exec_statement(node)
+
+    # ------------------------------------------------------------------
+    # Line branch execution
+    # ------------------------------------------------------------------
+
+    def _exec_line_branch(self, node: LineBranchNode):
+        """
+        Execute a line branch at statement level.
+
+        This only happens when a line branch is used as a standalone
+        statement (dispatched from _exec_statement).  In that context,
+        we use the board on top of the context stack.
+        """
+        if not self._board_stack:
+            raise RuntimeCllError(
+                "Line branch outside of a position block", node.line
+            )
+        parent_board = self._board_stack[-1]
+        self._exec_line_branch_on(node, parent_board)
+
+    def _exec_line_branch_on(self, node: LineBranchNode,
+                              parent_board: chess.Board):
+        """
+        Execute a line branch against a given parent board.
+
+        1. Copy the parent board.
+        2. Push the branch move onto the copy.
+        3. Execute the branch body on the copy.
+        4. The parent board is NEVER mutated.
+        """
+        branch_board = parent_board.copy()
+
+        # Push the branch move.
+        self._push_san(branch_board, node.move_lit, node.line)
+
+        # Push the branch board onto the context stack so `this` and
+        # nested branches resolve against it.
+        self._board_stack.append(branch_board)
+        try:
+            for item in node.moves:
+                self._exec_move_item(item, branch_board)
+        finally:
+            self._board_stack.pop()
+
+    # ------------------------------------------------------------------
+    # SAN move execution helper
+    # ------------------------------------------------------------------
+
+    def _push_san(self, board: chess.Board, san: str, line: int):
+        """
+        Push a SAN move onto a board.
+        Raises IllegalMoveError if the move is not legal.
+        """
+        try:
+            board.push_san(san)
+        except (chess.IllegalMoveError, chess.InvalidMoveError,
+                chess.AmbiguousMoveError, ValueError) as e:
+            raise IllegalMoveError(
+                f"Illegal move '{san}'", line
+            ) from e
 
     # ------------------------------------------------------------------
     # Square assignment (Batch 4 stub)
@@ -340,13 +459,16 @@ class Interpreter:
         if isinstance(node, BoardInitNode):
             return self._eval_board_init(node, node.line)
 
-        # --- this (Batch 3) ---
+        # --- this ---
         if isinstance(node, ThisNode):
-            raise RuntimeCllError(
-                "'this' is only valid during position block execution "
-                "(not yet implemented)",
-                node.line,
-            )
+            if not self._board_stack:
+                raise RuntimeCllError(
+                    "'this' is only valid inside a position block or "
+                    "line branch",
+                    node.line,
+                )
+            # Return a COPY so the caller cannot mutate the internal board.
+            return self._board_stack[-1].copy()
 
         # --- Board attribute access ---
         if isinstance(node, BoardAttributeNode):
