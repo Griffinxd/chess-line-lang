@@ -9,8 +9,8 @@ pos.sq(D1) <= W-queen
 
 pos.{
     line Qh5 {
-        pc queen_piece <= pos.sq(H5),
         saved <= this,
+        pc queen_piece <= saved.sq(H5),
         print(queen_piece)
     }
 }
