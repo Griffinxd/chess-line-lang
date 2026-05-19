@@ -1,0 +1,6 @@
+// Batch 2: board initialization and printing
+bd pos1 <= starting
+bd pos2 <= empty
+
+print(pos1)
+print(pos2)

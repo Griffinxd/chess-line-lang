@@ -7,6 +7,8 @@ This module implements the runtime phase of the pipeline:
     Source → Lexer → Parser → TypeChecker → **Interpreter**
 """
 
+import chess
+
 from ast_nodes import (
     ProgramNode,
     BoardDeclNode, BoardInitNode, ColorDeclNode, PieceDeclNode,
@@ -19,7 +21,9 @@ from ast_nodes import (
     PieceLiteralNode, SquareLiteralNode, ThisNode,
     EvalCallNode, EvalMethodCallNode,
 )
-from errors import RuntimeCllError, UninitializedVariableError
+from errors import (
+    RuntimeCllError, UninitializedVariableError, InvalidFENError,
+)
 
 
 # =====================================================================
@@ -44,6 +48,26 @@ UNINITIALIZED = _Uninitialized()
 
 
 # =====================================================================
+# Color-string helpers
+# =====================================================================
+
+# Map CLL color literal strings (case-insensitive) to chess.WHITE/BLACK.
+_COLOR_TO_CHESS = {
+    "white": chess.WHITE,
+    "black": chess.BLACK,
+}
+
+# Map chess.WHITE/BLACK back to a display string.
+_CHESS_TO_COLOR_STR = {
+    chess.WHITE: "white",
+    chess.BLACK: "black",
+}
+
+# Attribute aliases that all mean "turn".
+_TURN_ALIASES = frozenset({"turn", "tr", "color", "cl"})
+
+
+# =====================================================================
 # Interpreter
 # =====================================================================
 
@@ -61,8 +85,8 @@ class Interpreter:
 
     def __init__(self):
         # Flat runtime environment — maps variable names to values.
-        # Values may be Python strings, the UNINITIALIZED sentinel,
-        # or domain objects added in later batches.
+        # BOARD values are chess.Board objects; color values are strings
+        # like "white"/"black"; other literals are plain Python strings.
         self._env: dict[str, object] = {}
 
         # Premove table — maps premove names to their AST declarations.
@@ -135,23 +159,42 @@ class Interpreter:
     def _exec_board_decl(self, node: BoardDeclNode):
         """Declare board variable(s), optionally with an initializer."""
         if node.init is not None:
-            # TODO (Batch 2): evaluate board initializers (starting/empty/FEN)
             init_val = self._eval_board_init(node.init, node.line)
             for name in node.names:
-                self._env[name] = init_val
+                # Each declared name gets its own independent copy.
+                self._env[name] = init_val.copy()
         else:
             for name in node.names:
                 self._env[name] = UNINITIALIZED
 
-    def _eval_board_init(self, init_node, line: int):
-        """Evaluate a board initializer. Placeholder until Batch 2."""
+    def _eval_board_init(self, init_node, line: int) -> chess.Board:
+        """
+        Evaluate a board initializer and return a chess.Board.
+
+        - 'starting'        → chess.Board()
+        - 'empty'           → chess.Board(None)
+        - FEN string        → chess.Board(fen), raises InvalidFENError on failure
+        """
         if isinstance(init_node, BoardInitNode):
-            # 'starting' or 'empty' — will become chess.Board() objects.
-            # For now, store as a descriptive string placeholder.
-            return f"<board:{init_node.value}>"
+            if init_node.value == "starting":
+                return chess.Board()
+            if init_node.value == "empty":
+                return chess.Board(None)
+            raise RuntimeCllError(
+                f"Unknown board init keyword: {init_node.value}", line
+            )
+
         if isinstance(init_node, StringLiteralNode):
-            # FEN string — will be validated in Batch 2.
-            return f"<board:FEN:{init_node.value}>"
+            # The lexer stores the string with surrounding quotes.
+            fen = init_node.value.strip('"')
+            try:
+                board = chess.Board(fen)
+            except ValueError as e:
+                raise InvalidFENError(
+                    f"Invalid FEN string: {fen}", line
+                ) from e
+            return board
+
         raise RuntimeCllError(
             f"Unexpected board initializer: {type(init_node).__name__}", line
         )
@@ -196,20 +239,54 @@ class Interpreter:
         if isinstance(node.target, IdentifierNode):
             value = self._eval_expr(node.value)
             name = node.target.name
+            # Board assignment must copy to prevent aliasing.
+            if isinstance(value, chess.Board):
+                value = value.copy()
             # The type checker guarantees the variable was declared.
             self._env[name] = value
 
         elif isinstance(node.target, BoardAttributeNode):
-            # TODO (Batch 2): board attribute assignment (pos.turn <= white)
-            raise RuntimeCllError(
-                "Board attribute assignment is not yet implemented",
-                node.line,
-            )
+            self._exec_board_attr_assignment(node)
+
         else:
             raise RuntimeCllError(
                 f"Invalid assignment target: {type(node.target).__name__}",
                 node.line,
             )
+
+    def _exec_board_attr_assignment(self, node: AssignmentNode):
+        """
+        Execute a board attribute assignment: pos.turn <= white/black.
+
+        Attribute aliases: turn, tr, color, cl.
+        """
+        attr_node: BoardAttributeNode = node.target
+        board = self._lookup_variable(attr_node.board_name, node.line)
+
+        if not isinstance(board, chess.Board):
+            raise RuntimeCllError(
+                f"Attribute assignment target '{attr_node.board_name}' is not "
+                f"a board",
+                node.line,
+            )
+
+        attr = attr_node.attribute.lower()
+        if attr not in _TURN_ALIASES:
+            raise RuntimeCllError(
+                f"Unknown board attribute: {attr_node.attribute}", node.line
+            )
+
+        rhs = self._eval_expr(node.value)
+        chess_color = _COLOR_TO_CHESS.get(
+            rhs.lower() if isinstance(rhs, str) else None
+        )
+        if chess_color is None:
+            raise RuntimeCllError(
+                f"Board attribute (turn/color) requires 'white' or 'black', "
+                f"got '{rhs}'",
+                node.line,
+            )
+        board.turn = chess_color
 
     # ------------------------------------------------------------------
     # Position block (Batch 3 stub)
@@ -271,11 +348,9 @@ class Interpreter:
                 node.line,
             )
 
-        # --- Board attribute access (Batch 2) ---
+        # --- Board attribute access ---
         if isinstance(node, BoardAttributeNode):
-            raise RuntimeCllError(
-                "Board attribute access is not yet implemented", node.line
-            )
+            return self._eval_board_attr_access(node)
 
         # --- Square access (Batch 4) ---
         if isinstance(node, SquareAccessNode):
@@ -304,6 +379,32 @@ class Interpreter:
         raise RuntimeCllError(
             f"Cannot evaluate node: {type(node).__name__}", node.line
         )
+
+    # ------------------------------------------------------------------
+    # Board attribute access
+    # ------------------------------------------------------------------
+
+    def _eval_board_attr_access(self, node: BoardAttributeNode):
+        """
+        Evaluate a board attribute read: pos.turn / pos.tr / pos.color / pos.cl.
+
+        Returns a color string ("white" or "black").
+        """
+        board = self._lookup_variable(node.board_name, node.line)
+
+        if not isinstance(board, chess.Board):
+            raise RuntimeCllError(
+                f"Attribute access target '{node.board_name}' is not a board",
+                node.line,
+            )
+
+        attr = node.attribute.lower()
+        if attr not in _TURN_ALIASES:
+            raise RuntimeCllError(
+                f"Unknown board attribute: {node.attribute}", node.line
+            )
+
+        return _CHESS_TO_COLOR_STR[board.turn]
 
     # ------------------------------------------------------------------
     # Variable lookup with uninitialized check

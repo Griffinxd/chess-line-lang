@@ -1,0 +1,12 @@
+// Batch 2: board copy semantics and turn assignment/access
+bd original <= starting
+bd copy
+
+copy <= original
+copy.turn <= black
+
+tr original_turn <= original.tr
+tr copy_turn <= copy.turn
+
+print(original_turn)
+print(copy_turn)

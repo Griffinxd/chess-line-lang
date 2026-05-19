@@ -50,3 +50,14 @@ Language Model: Chatgpt
 Chat Link: https://chatgpt.com/share/6a0ad36c-fec0-8395-bc1f-34089efb7e21
 Description: Reorganizing the sample programs and test suites.
 
+Interaction: 9
+Date: 19.05.2026
+Language Model: Chatgpt
+Chat Link: https://chatgpt.com/share/6a0c635d-0160-8384-956c-5ed32fa239cc
+Description: Interpreter architecture. Recursive tree-walking.
+
+Interaction: 10
+Date: 19.05.2026
+Language Model: Chatgpt
+Chat Link: https://chatgpt.com/share/6a0c679e-ff0c-8388-b63d-407262906009
+Description: Python chess and interpreter layer. Implementation basics.

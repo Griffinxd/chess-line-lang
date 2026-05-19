@@ -1,0 +1,18 @@
+// Batch 2: turn alias coverage (tr, turn, cl, color)
+bd pos <= empty
+
+pos.tr <= white
+tr s1 <= pos.tr
+print(s1)
+
+pos.turn <= black
+tr s2 <= pos.turn
+print(s2)
+
+pos.cl <= white
+tr s3 <= pos.cl
+print(s3)
+
+pos.color <= black
+tr s4 <= pos.color
+print(s4)

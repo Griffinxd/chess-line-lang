@@ -1,0 +1,12 @@
+// Batch 2: multi-board declaration with initializer
+bd a, b, c <= starting
+
+b.turn <= black
+
+tr ta <= a.tr
+tr tb <= b.tr
+tr tc <= c.tr
+
+print(ta)
+print(tb)
+print(tc)
