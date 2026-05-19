@@ -7,7 +7,9 @@ This module implements the runtime phase of the pipeline:
     Source → Lexer → Parser → TypeChecker → **Interpreter**
 """
 
+import copy
 import chess
+import chess.engine
 
 from ast_nodes import (
     ProgramNode,
@@ -24,7 +26,7 @@ from ast_nodes import (
 from errors import (
     RuntimeCllError, UninitializedVariableError, InvalidFENError,
     IllegalMoveError, EmptySquareError, IllegalBoardError,
-    IncompatiblePremoveError,
+    IncompatiblePremoveError, MissingEngineError, EngineEvaluationError,
 )
 
 
@@ -198,6 +200,23 @@ class Interpreter:
         # a copy of the top-of-stack board.  Empty outside of any
         # position block.
         self._board_stack: list[chess.Board] = []
+
+        # Stockfish engine instance
+        self._engine = None
+
+    def __del__(self):
+        """Clean up the engine process on exit."""
+        if hasattr(self, '_engine') and self._engine is not None:
+            self._engine.quit()
+
+    def _get_engine(self, line: int):
+        """Lazily initialize and return the Stockfish engine."""
+        if self._engine is None:
+            try:
+                self._engine = chess.engine.SimpleEngine.popen_uci("stockfish")
+            except (FileNotFoundError, OSError) as e:
+                raise MissingEngineError("Stockfish engine not found or could not be started", line) from e
+        return self._engine
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -524,6 +543,60 @@ class Interpreter:
             ) from e
 
     # ------------------------------------------------------------------
+    # Engine Evaluation (Batch 5B)
+    # ------------------------------------------------------------------
+
+    def _eval_engine_call(self, node: EvalCallNode) -> int | str:
+        board = self._eval_expr(node.expr)
+        if not isinstance(board, chess.Board):
+            raise RuntimeCllError(f"eval() expects a BOARD, got {type(board).__name__}", node.line)
+        self._assert_valid_board(board, node.line)
+
+        engine = self._get_engine(node.line)
+        try:
+            info = engine.analyse(board, chess.engine.Limit(depth=10))
+            if "score" not in info:
+                raise EngineEvaluationError("Engine did not return a score", node.line)
+            
+            score = info["score"].white()
+            if score.is_mate():
+                mate_moves = score.mate()
+                if mate_moves is None:
+                    # Safely handle score.mate() == None
+                    return "M0"
+                return f"M{mate_moves}"
+            else:
+                cp = score.score()
+                if cp is None:
+                    return 0
+                return cp
+        except Exception as e:
+            if isinstance(e, RuntimeCllError):
+                raise
+            raise EngineEvaluationError(f"Engine evaluation failed: {e}", node.line) from e
+
+    def _eval_engine_move(self, node: EvalMethodCallNode) -> str:
+        board_arg = node.args[0]
+        board = self._eval_expr(board_arg)
+        if not isinstance(board, chess.Board):
+            raise RuntimeCllError(f"eval.move() expects a BOARD, got {type(board).__name__}", node.line)
+
+        self._assert_valid_board(board, node.line)
+
+        engine = self._get_engine(node.line)
+        try:
+            result = engine.play(board, chess.engine.Limit(depth=10))
+            if result.move is None:
+                raise EngineEvaluationError("No legal move available for evaluation", node.line)
+
+            # Convert to SAN before any mutation
+            return board.san(result.move)
+        except Exception as e:
+            if isinstance(e, RuntimeCllError):
+                raise
+            raise EngineEvaluationError(f"Engine move generation failed: {e}", node.line) from e
+
+    # ------------------------------------------------------------------
     # Premove execution (Batch 5A)
     # ------------------------------------------------------------------
 
@@ -681,17 +754,13 @@ class Interpreter:
         if isinstance(node, SquareAccessNode):
             return self._eval_square_access(node)
 
-        # --- eval() (Batch 5) ---
+        # --- eval() (Batch 5B) ---
         if isinstance(node, EvalCallNode):
-            raise RuntimeCllError(
-                "eval() is not yet implemented", node.line
-            )
+            return self._eval_engine_call(node)
 
-        # --- eval.move() (Batch 5) ---
+        # --- eval.move() (Batch 5B) ---
         if isinstance(node, EvalMethodCallNode):
-            raise RuntimeCllError(
-                "eval.move() is not yet implemented", node.line
-            )
+            return self._eval_engine_move(node)
 
         # --- Premove call (Batch 5A) ---
         if isinstance(node, PremoveCallNode):
