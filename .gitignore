@@ -1,3 +1,10 @@
 P2_roadmap.pdf
 src/__pycache__
+tests/__pycache__
 docs/llm-interactions.txt
+
+# Build artifacts
+.venv/
+engines/
+cll
+__pycache__/

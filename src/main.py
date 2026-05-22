@@ -92,8 +92,19 @@ def main():
             sys.exit(1)
         return
 
-    # Default: just validate
-    print("Parsing successful.")
+    # Default: type-check then interpret (same as --run)
+    from type_checker import TypeChecker
+    from interpreter import Interpreter
+    try:
+        TypeChecker().check(ast)
+    except CllError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
+    try:
+        Interpreter().execute(ast)
+    except CllError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
