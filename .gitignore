@@ -7,4 +7,5 @@ docs/llm-interactions.txt
 .venv/
 engines/
 cll
+Deliverables/
 __pycache__/
