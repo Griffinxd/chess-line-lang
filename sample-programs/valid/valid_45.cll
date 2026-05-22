@@ -1,0 +1,13 @@
+// Lexical scoping: assignment from inner branch updates outer variable
+// `saved` is declared in the outer scope and assigned inside a line branch.
+bd pos <= starting
+bd saved
+
+pos.{
+    line e4 {
+        saved <= this
+    }
+}
+
+// `saved` should hold the board state after 1.e4.
+print(saved)

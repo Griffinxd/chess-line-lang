@@ -185,10 +185,12 @@ class Interpreter:
     """
 
     def __init__(self):
-        # Flat runtime environment — maps variable names to values.
-        # BOARD values are chess.Board objects; color values are strings
-        # like "white"/"black"; other literals are plain Python strings.
-        self._env: dict[str, object] = {}
+        # Lexical scope stack — each element is a dict mapping variable
+        # names to values.  The first element is the global scope.
+        # Declarations create bindings in the current (top) scope;
+        # assignments search outward for the nearest existing binding;
+        # lookups search from inner to outer.
+        self._env_stack: list[dict[str, object]] = [{}]
 
         # Premove table — maps premove names to their AST declarations.
         # Populated during execution and used for premove call expansion
@@ -283,10 +285,10 @@ class Interpreter:
             init_val = self._eval_board_init(node.init, node.line)
             for name in node.names:
                 # Each declared name gets its own independent copy.
-                self._env[name] = init_val.copy()
+                self._declare_variable(name, init_val.copy())
         else:
             for name in node.names:
-                self._env[name] = UNINITIALIZED
+                self._declare_variable(name, UNINITIALIZED)
 
     def _eval_board_init(self, init_node, line: int) -> chess.Board:
         """
@@ -323,24 +325,24 @@ class Interpreter:
     def _exec_color_decl(self, node: ColorDeclNode):
         """Declare a color variable with its initializer value."""
         value = self._eval_expr(node.value)
-        self._env[node.name] = value
+        self._declare_variable(node.name, value)
 
     def _exec_piece_decl(self, node: PieceDeclNode):
         """Declare a piece variable with its initializer value."""
         value = self._eval_expr(node.value)
-        self._env[node.name] = value
+        self._declare_variable(node.name, value)
 
     def _exec_move_decl(self, node: MoveDeclNode):
         """Declare a move variable with its initializer value."""
         value = self._eval_expr(node.expr)
-        self._env[node.name] = value
+        self._declare_variable(node.name, value)
 
     def _exec_premove_decl(self, node: PremoveDeclNode):
         """Register a premove declaration in the premove table."""
         # Store the AST node for later expansion (Batch 5).
         self._premoves[node.name] = node
         # Also register in the environment so identifier lookups resolve.
-        self._env[node.name] = f"<premove:{node.name}>"
+        self._declare_variable(node.name, f"<premove:{node.name}>")
 
     # ------------------------------------------------------------------
     # Print
@@ -368,7 +370,7 @@ class Interpreter:
             if isinstance(value, chess.Board):
                 value = value.copy()
             # The type checker guarantees the variable was declared.
-            self._env[name] = value
+            self._assign_variable(name, value, node.line)
 
         elif isinstance(node.target, BoardAttributeNode):
             self._exec_board_attr_assignment(node)
@@ -438,10 +440,12 @@ class Interpreter:
 
         # Push the board onto the context stack so `this` resolves.
         self._board_stack.append(board)
+        self._enter_scope()
         try:
             for item in node.moves:
                 self._exec_move_item(item, board)
         finally:
+            self._exit_scope()
             self._board_stack.pop()
 
     def _exec_move_item(self, node, board: chess.Board):
@@ -519,10 +523,12 @@ class Interpreter:
         # Push the branch board onto the context stack so `this` and
         # nested branches resolve against it.
         self._board_stack.append(branch_board)
+        self._enter_scope()
         try:
             for item in node.moves:
                 self._exec_move_item(item, branch_board)
         finally:
+            self._exit_scope()
             self._board_stack.pop()
 
     # ------------------------------------------------------------------
@@ -630,7 +636,7 @@ class Interpreter:
                         f"Illegal move '{san}'", node.value.line
                     ) from e
                     
-        self._env[name] = new_board
+        self._assign_variable(name, new_board, node.line)
 
     def _expand_premove(self, name: str, line: int) -> list[str]:
         """Expand a named premove into a list of SAN strings."""
@@ -844,22 +850,57 @@ class Interpreter:
             )
 
     # ------------------------------------------------------------------
-    # Variable lookup with uninitialized check
+    # Lexical scope management
     # ------------------------------------------------------------------
+
+    def _enter_scope(self):
+        """Push a new empty scope onto the environment stack."""
+        self._env_stack.append({})
+
+    def _exit_scope(self):
+        """Pop the top scope from the environment stack."""
+        self._env_stack.pop()
+
+    def _declare_variable(self, name: str, value: object):
+        """
+        Declare a variable in the current (innermost) scope.
+
+        This always creates a new binding in the top scope, which may
+        shadow an outer binding of the same name.
+        """
+        self._env_stack[-1][name] = value
+
+    def _assign_variable(self, name: str, value: object, line: int):
+        """
+        Assign to an existing variable, searching from inner scope outward.
+
+        Updates the nearest scope that already contains *name*.
+        Raises RuntimeCllError if the variable was never declared.
+        """
+        for scope in reversed(self._env_stack):
+            if name in scope:
+                scope[name] = value
+                return
+        raise RuntimeCllError(
+            f"Undefined variable '{name}'", line
+        )
 
     def _lookup_variable(self, name: str, line: int):
         """
-        Look up a variable in the runtime environment.
+        Look up a variable by searching from the innermost scope outward.
+
+        Raises RuntimeCllError if the variable is not found in any scope.
         Raises UninitializedVariableError if the variable holds the
         UNINITIALIZED sentinel.
         """
-        if name not in self._env:
-            raise RuntimeCllError(
-                f"Undefined variable '{name}'", line
-            )
-        value = self._env[name]
-        if value is UNINITIALIZED:
-            raise UninitializedVariableError(
-                f"Use of uninitialized variable '{name}'", line
-            )
-        return value
+        for scope in reversed(self._env_stack):
+            if name in scope:
+                value = scope[name]
+                if value is UNINITIALIZED:
+                    raise UninitializedVariableError(
+                        f"Use of uninitialized variable '{name}'", line
+                    )
+                return value
+        raise RuntimeCllError(
+            f"Undefined variable '{name}'", line
+        )

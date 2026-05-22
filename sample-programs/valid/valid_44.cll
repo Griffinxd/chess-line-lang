@@ -1,0 +1,11 @@
+// Lexical scoping: shadowing in inner scope
+// Inner declaration of `p` in a position block should NOT affect outer `p`.
+bd pos <= starting
+pc p <= W-king
+
+pos.{
+    pc p <= B-queen
+}
+
+// Outer `p` must still be W-king after the position block exits.
+print(p)
